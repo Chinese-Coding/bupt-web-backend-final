@@ -1,0 +1,26 @@
+spring:
+    application:
+        name: web
+    devtools:
+        restart:
+            enabled: false
+
+    datasource:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        # TIPS: 导入数据库时需要修改已下信息
+        url: jdbc:mysql://localhost:3306/air_conditioner_system?useSSL=false&useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+        username: root
+        password: root
+
+    # 启动虚拟线程的支持
+    threads:
+        virtual:
+            enabled: true
+mybatis-plus:
+    configuration:
+        # 在映射实体或者属性时, 将数据库中表名和字段名中的下划线去掉, 开启按照驼峰命名法映射
+        map-underscore-to-camel-case: true
+        log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    global-config:
+        db-config:
+            id-type: ASSIGN_ID
