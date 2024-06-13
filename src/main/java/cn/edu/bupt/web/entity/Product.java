@@ -20,4 +20,6 @@ public class Product {
     private Integer stock;
 
     private LocalDateTime createTime;
+
+    private Integer comment_count;
 }
