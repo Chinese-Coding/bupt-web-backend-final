@@ -17,7 +17,7 @@ public class Product {
 
     private BigDecimal price;
 
-    private int stock;
+    private Integer stock;
 
     private LocalDateTime createTime;
 }

@@ -16,6 +16,12 @@ spring:
     threads:
         virtual:
             enabled: true
+    # redis 配置
+    data:
+        redis:
+            host: localhost
+            port: 6379
+
 mybatis-plus:
     configuration:
         # 在映射实体或者属性时, 将数据库中表名和字段名中的下划线去掉, 开启按照驼峰命名法映射
@@ -27,4 +33,13 @@ mybatis-plus:
 logging:
     level:
         org.springframework: info
+
+springdoc:
+    api-docs:
+        path: /api-docs
+        enabled: true
+    swagger-ui:
+        # 可以通过这个 url 启动 swagger-ui 方便调试
+        path: /swagger-ui.html
+        enabled: true
 

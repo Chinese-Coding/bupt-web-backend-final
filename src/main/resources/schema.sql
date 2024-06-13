@@ -9,11 +9,12 @@ USE shop;
 DROP TABLE IF EXISTS user;
 CREATE TABLE user
 (
-    id     BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
     username    VARCHAR(50)  NOT NULL UNIQUE,
     password    VARCHAR(100) NOT NULL,
-    level       INT       DEFAULT 1,
-    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    phone       VARCHAR(20)  NULL DEFAULT NULL,
+    level       INT               DEFAULT 1,
+    create_time TIMESTAMP         DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 商品
