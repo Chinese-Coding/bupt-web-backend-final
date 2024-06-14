@@ -21,5 +21,5 @@ public class Product {
 
     private LocalDateTime createTime;
 
-    private Integer comment_count;
+    private Integer commentCount;
 }

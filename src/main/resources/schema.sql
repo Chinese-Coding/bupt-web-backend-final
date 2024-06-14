@@ -21,13 +21,14 @@ CREATE TABLE user
 DROP TABLE IF EXISTS product;
 CREATE TABLE product
 (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name        VARCHAR(100)   NOT NULL,
-    description TEXT,
-    category    VARCHAR(50),
-    price       DECIMAL(10, 2) NOT NULL,
-    stock       INT            NOT NULL,
-    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name          VARCHAR(100)   NOT NULL,
+    description   TEXT,
+    category      VARCHAR(50),
+    price         DECIMAL(10, 2) NOT NULL,
+    stock         INT            NOT NULL,
+    create_time   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    comment_count INT       DEFAULT 0
 );
 
 -- 分类

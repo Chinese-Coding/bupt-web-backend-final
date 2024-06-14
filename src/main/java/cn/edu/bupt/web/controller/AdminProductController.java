@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("Shop_admin")
-public class Admin_ProductController {
+public class AdminProductController {
     @Resource
     private ProductService productService;
 
@@ -27,7 +27,7 @@ public class Admin_ProductController {
         product.setCategory(category);
         product.setPrice(price);
         product.setStock(stock);
-        product.setComment_count(0);
+        product.setCommentCount(0);
         boolean isSaved = productService.save(product);
         if (isSaved) {
             Long productId = product.getId();

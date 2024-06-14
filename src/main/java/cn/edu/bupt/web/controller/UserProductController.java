@@ -21,13 +21,13 @@ import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/Shop")
-public class User_ProductController {
+public class UserProductController {
 
     @Resource
     private ProductService productService;
     private final RedisTemplate<String, String> redisTemplate;
 
-    public User_ProductController(RedisTemplate<String, String> redisTemplate) {
+    public UserProductController(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
@@ -61,9 +61,9 @@ public class User_ProductController {
                 break;
             case "comment_count":
                 if (isDesc) {
-                    lqw.orderByDesc(Product::getComment_count);
+                    lqw.orderByDesc(Product::getCommentCount);
                 } else {
-                    lqw.orderByAsc(Product::getComment_count);
+                    lqw.orderByAsc(Product::getCommentCount);
                 }
                 break;
             default:
@@ -89,7 +89,8 @@ public class User_ProductController {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         try {
-            return objectMapper.readValue(json, new TypeReference<List<Product>>() {});
+            return objectMapper.readValue(json, new TypeReference<>() {
+            });
         } catch (IOException e) {
             e.printStackTrace();
             return null;
