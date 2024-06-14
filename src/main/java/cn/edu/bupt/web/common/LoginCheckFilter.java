@@ -25,10 +25,17 @@ public class LoginCheckFilter extends OncePerRequestFilter {
 
     // 这些路径不需要处理
     private static final String[] urls = new String[]{
-            "/user/*"
+            // swagger
+            "/swagger-ui.html", "/swagger-ui/*", "/api-docs", "/api-docs/*",
+            "/user/*",
+            "/comment/page"
     };
 
-    private static final RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
+    final RedisTemplate<String, String> redisTemplate;
+
+    public LoginCheckFilter(RedisTemplate<String, String> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -44,12 +51,19 @@ public class LoginCheckFilter extends OncePerRequestFilter {
             return;
         }
 
-        final String authorizationHeader = request.getHeader("Authorization");
+        final var authorizationHeader = request.getHeader("Authorization");
+        log.info("Authorization: {}", authorizationHeader);
+        if (authorizationHeader == null) {
+            log.error("用户请求 {} 验证出现意外, 没有认证头", requestURI);
+            response.getWriter().write(new ObjectMapper().writeValueAsString(R.error("NOTLOGIN")));
+            return;
+        }
+
         var username = redisTemplate.opsForValue().get(authorizationHeader);
         if (username != null)
             filterChain.doFilter(request, response);
         else {
-            log.info("用户验证出现意外");
+            log.error("用户请求 {} 验证出现意外, 用户名不正确", requestURI);
             response.getWriter().write(new ObjectMapper().writeValueAsString(R.error("NOTLOGIN")));
         }
     }

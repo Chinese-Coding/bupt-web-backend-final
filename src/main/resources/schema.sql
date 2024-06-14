@@ -81,6 +81,7 @@ CREATE TABLE comment
     user_id     BIGINT NOT NULL,
     product_id  BIGINT NOT NULL,
     content     TEXT   NOT NULL,
+    status      INT       DEFAULT 1,
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

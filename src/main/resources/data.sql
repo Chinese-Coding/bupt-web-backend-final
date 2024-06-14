@@ -17,13 +17,13 @@ VALUES
     ('bob_brown', 'password101', 3);
 
 -- 插入假数据到产品表
-INSERT INTO product (name, description, category, price, stock)
+INSERT INTO product (name, description, category, price, stock, comment_count)
 VALUES
-    ('Smartphone', 'A high-end smartphone', 'Electronics', 699.99, 50),
-    ('Laptop', 'A powerful gaming laptop', 'Electronics', 1299.99, 30),
-    ('Cookbook', 'Recipes for delicious meals', 'Books', 19.99, 100),
-    ('T-shirt', 'Comfortable cotton t-shirt', 'Clothing', 9.99, 200),
-    ('Blender', 'A high-speed blender', 'Home & Kitchen', 89.99, 40);
+    ('Smartphone', 'A high-end smartphone', 'Electronics', 699.99, 50, 1),
+    ('Laptop', 'A powerful gaming laptop', 'Electronics', 1299.99, 30, 1),
+    ('Cookbook', 'Recipes for delicious meals', 'Books', 19.99, 100, 1),
+    ('T-shirt', 'Comfortable cotton t-shirt', 'Clothing', 9.99, 200, 0),
+    ('Blender', 'A high-speed blender', 'Home & Kitchen', 89.99, 40, 0);
 
 -- 插入假数据到商品分类关联表
 INSERT INTO product_category (product_id, category_id)

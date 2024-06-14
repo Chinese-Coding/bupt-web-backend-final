@@ -53,6 +53,7 @@ public class UserController {
         if (user.getPassword().equals(password)) {
             var token = generateToken(username);
             redisTemplate.opsForValue().set(token, username, 30, TimeUnit.MINUTES);
+            log.info("用户 {}, 的 Authorization: {}", username, token);
             return R.success(token);
         }
         return R.error("密码错误");

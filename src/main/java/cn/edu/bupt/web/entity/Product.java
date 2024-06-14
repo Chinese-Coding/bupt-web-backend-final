@@ -22,4 +22,8 @@ public class Product {
     private LocalDateTime createTime;
 
     private Integer commentCount;
+
+    public void commentCountPlus(Integer num) {
+        this.commentCount += num;
+    }
 }
