@@ -28,7 +28,10 @@ public class LoginCheckFilter extends OncePerRequestFilter {
             // swagger
             "/swagger-ui.html", "/swagger-ui/*", "/api-docs", "/api-docs/*",
             "/user/*",
-            "/comment/page"
+            "/comment/page",
+            "/Shop/*",
+            "/Shop_admin/*",
+            "/order/*"
     };
 
     final RedisTemplate<String, String> redisTemplate;

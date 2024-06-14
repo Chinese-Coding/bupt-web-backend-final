@@ -10,7 +10,7 @@ spring:
         # TIPS: 导入数据库时需要修改已下信息
         url: jdbc:mysql://localhost:3306/shop
         username: root
-        password: root
+        password: 20021208
 
     # 启动虚拟线程的支持
     threads:
@@ -21,7 +21,12 @@ spring:
         redis:
             host: localhost
             port: 6379
-
+    rabbitmq:
+        host: localhost
+        port: 5672
+        stream:
+            username: guest
+            password: guest
 mybatis-plus:
     configuration:
         # 在映射实体或者属性时, 将数据库中表名和字段名中的下划线去掉, 开启按照驼峰命名法映射
