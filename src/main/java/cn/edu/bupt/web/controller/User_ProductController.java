@@ -107,4 +107,30 @@ public class User_ProductController {
             return null;
         }
     }
+
+    @GetMapping("/search")
+    public R<List<Product>> search(@RequestParam(value = "name", defaultValue = "") String name,
+                                   @RequestParam(value = "category", defaultValue = "all") String category) {
+
+        // 构建 Redis 缓存键
+        String cacheKey = "products:search:" + name + ":" + category;
+        String cachedProducts = redisTemplate.opsForValue().get(cacheKey);
+
+        if (cachedProducts != null) {
+            List<Product> products = parseProductsFromJson(cachedProducts);
+            return R.success(products);
+        }
+
+        LambdaQueryWrapper<Product> lqw = Wrappers.lambdaQuery();
+        if (!name.isEmpty()) {
+            lqw.like(Product::getName, name);
+        }
+        if (!category.equals("all")) {
+            lqw.eq(Product::getCategory, category);
+        }
+        //lqw.orderByAsc(Product::getId);
+        List<Product> products = productService.list(lqw);
+        convertProductsToJson(products);
+        return R.success(products);
+    }
 }
