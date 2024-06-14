@@ -2,7 +2,6 @@ package cn.edu.bupt.web.controller;
 
 import cn.edu.bupt.web.common.R;
 import cn.edu.bupt.web.entity.Comment;
-import cn.edu.bupt.web.entity.User;
 import cn.edu.bupt.web.service.CommentService;
 import cn.edu.bupt.web.service.ProductService;
 import cn.edu.bupt.web.service.UserService;
@@ -48,20 +47,18 @@ public class CommentController {
     public R<Long> add(@NotNull Long productId, String content, HttpServletRequest request) {
         // 资格认证
         final var authorizationHeader = request.getHeader("Authorization");
-        var username = redisTemplate.opsForValue().get(authorizationHeader);
-        if (username == null)
+        var userId = redisTemplate.opsForValue().get(authorizationHeader);
+        if (userId == null)
             return R.error("请先登录");
-        var user = userService.getOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        var user = userService.getById(Long.getLong(userId));
         if (user == null)
             return R.error("当前评论用户不存在");
         var product = productService.getById(productId);
         if (product == null)
             return R.error("当前评论的商品不存在");
-
-        var userId = user.getId();
-        var comment = new Comment(userId, productId, content);
+        var comment = new Comment(Long.getLong(userId), productId, content);
         commentService.save(comment);
-        log.info("用户 {} 评论了商品 {} 评论为: {}", username, productId, comment);
+        log.info("用户 {} 评论了商品 {} 评论为: {}", user.getUsername(), productId, comment);
         return R.success(comment.getId());
     }
 
@@ -87,11 +84,11 @@ public class CommentController {
      */
     @DeleteMapping
     public R<String> delete(@NotNull Long id, HttpServletRequest request) {
-        var username = redisTemplate.opsForValue().get(request.getHeader("Authorization"));
-        if (username == null)
+        var userId = redisTemplate.opsForValue().get(request.getHeader("Authorization"));
+        if (userId == null)
             return R.error("请先登录");
         var comment = commentService.getById(id);
-        var user = userService.getOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        var user = userService.getById(Long.getLong(userId));
         if (comment == null)
             return R.success("评论不存在");
         if (user == null)

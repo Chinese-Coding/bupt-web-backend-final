@@ -59,8 +59,8 @@ public class LoginCheckFilter extends OncePerRequestFilter {
             return;
         }
 
-        var username = redisTemplate.opsForValue().get(authorizationHeader);
-        if (username != null)
+        var userId = redisTemplate.opsForValue().get(authorizationHeader);
+        if (userId != null)
             filterChain.doFilter(request, response);
         else {
             log.error("用户请求 {} 验证出现意外, 用户名不正确", requestURI);

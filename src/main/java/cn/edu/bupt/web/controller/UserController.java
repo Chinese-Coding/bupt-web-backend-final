@@ -52,7 +52,7 @@ public class UserController {
             return R.error("用户不存在");
         if (user.getPassword().equals(password)) {
             var token = generateToken(username);
-            redisTemplate.opsForValue().set(token, username, 30, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(token, user.getId().toString(), 30, TimeUnit.MINUTES);
             log.info("用户 {}, 的 Authorization: {}", username, token);
             return R.success(token);
         }
