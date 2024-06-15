@@ -9,10 +9,13 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.stereotype.Component;
+
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
+@Component
 public class OrderListener {
     @Resource
     private ObjectMapper objectMapper;
@@ -28,8 +31,8 @@ public class OrderListener {
     public void handleOrder(String orderMessage) {
         try {
             Map<String, Object> orderMap = objectMapper.readValue(orderMessage, Map.class);
-            Order order = (Order) orderMap.get("order");
-            List<OrderItem> orderItems = (List<OrderItem>) orderMap.get("orderItems");
+            Order order = objectMapper.convertValue(orderMap.get("order"), Order.class);
+            List<OrderItem> orderItems = objectMapper.convertValue(orderMap.get("orderItems"), objectMapper.getTypeFactory().constructCollectionType(List.class, OrderItem.class));
             for (OrderItem orderItem : orderItems) {
                 var productId = orderItem.getProductId();
                 Product curProduct = productService.getById(productId);
@@ -45,7 +48,7 @@ public class OrderListener {
                 curProduct.setStock(curProduct.getStock()-orderItem.getQuantity());
                 productService.updateById(curProduct);
             }
-            order.setStatus("CONFIRMED");
+            order.setStatus("PENDING");
             orderService.updateById(order);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -82,9 +85,9 @@ public class OrderListener {
     public void handleCancel(String orderMessage){
         try {
             Map<String, Object> orderMap = objectMapper.readValue(orderMessage, Map.class);
-            Order order = (Order) orderMap.get("order");
-            List<OrderItem> orderItems = (List<OrderItem>) orderMap.get("orderItems");
-            if ("CREATED".equals(order.getStatus())) {
+            Order order = objectMapper.convertValue(orderMap.get("order"), Order.class);
+            List<OrderItem> orderItems = objectMapper.convertValue(orderMap.get("orderItems"), objectMapper.getTypeFactory().constructCollectionType(List.class, OrderItem.class));
+            if ("PENDING".equals(order.getStatus())) {
                 for(OrderItem orderItem : orderItems){
                     var productId = orderItem.getProductId();
                     Product curProduct = productService.getById(productId);
@@ -104,7 +107,7 @@ public class OrderListener {
     public void handleShip(String orderMessage){
         try {
             Map<String, Object> orderMap = objectMapper.readValue(orderMessage, Map.class);
-            Order order = (Order) orderMap.get("order");
+            Order order = objectMapper.convertValue(orderMap.get("order"), Order.class);
             order.setStatus("SHIPPED");
             orderService.updateById(order);
             log.info(("订单：")+order.getId()+(",发货咯!"));

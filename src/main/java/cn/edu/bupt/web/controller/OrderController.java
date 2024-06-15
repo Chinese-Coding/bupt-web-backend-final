@@ -70,7 +70,8 @@ public class OrderController {
         Product product = productService.getById(productId);
         if(product.getStock() >= num){
             var price = product.getPrice();
-            var totalfee = price.multiply(BigDecimal.valueOf(num));
+            var lastfee = createdOrder.getTotalAmount();
+            var totalfee = lastfee.add(price.multiply(BigDecimal.valueOf(num)));
             createdOrder.setTotalAmount(totalfee);
             orderService.updateById(createdOrder);
             OrderItem newOrderItem = new OrderItem();
@@ -98,12 +99,13 @@ public class OrderController {
             message.getMessageProperties().setExpiration("600000");
             return message;
         });
-        if(createdOrder.getStatus().equals("CONFIRM")){
-            createdOrder.setStatus("PENDING");
-            orderService.updateById(createdOrder);
-            return R.success(createdOrder);
+        try {
+            Thread.sleep(5000); // 等待 5 秒钟
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
-        return R.error("出错了");
+        Order curOrder = orderService.getById(createdOrder.getId());
+        return R.success(curOrder);
     }
     private String convertOrderToJson(Order order, List<OrderItem> orderItems) {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -140,5 +142,25 @@ public class OrderController {
         String orderMessage = convertOrderToJson(order, getAllItem(order));
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.PAYMENT_QUEUE, orderMessage);
         return R.success("Order payment initiated.");
+    }
+    @PostMapping("/chancelOrder")
+    public R<String> chancelOrder(@RequestHeader("Authorization") String token,Long orderId){
+        var userId = redisTemplate.opsForValue().get(token);
+        if(userId == null) return R.error("请先登录");
+        var order = orderService.getById(orderId);
+        if(!order.getStatus().equals("PENDING")){
+            return R.error("该订单不是等待支付状态哦～");
+        }
+        String orderMessage = convertOrderToJson(order, getAllItem(order));
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.ORDER_CANCEL_QUEUE, orderMessage);
+        return R.success("取消成功，再看看其他商品吧～");
+    }
+
+    @GetMapping("/orderDetail")
+    public R<List<OrderItem>> orderDetail(@RequestHeader("Authorization") String token,Long orderId){
+        var userId = redisTemplate.opsForValue().get(token);
+        if(userId == null) return R.error("请先登录");
+        Order order = orderService.getById(orderId);
+        return R.success(getAllItem(order));
     }
 }
