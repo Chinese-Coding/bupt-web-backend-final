@@ -4,7 +4,6 @@ import cn.edu.bupt.web.common.R;
 import cn.edu.bupt.web.config.RabbitConfig;
 import cn.edu.bupt.web.entity.Order;
 import cn.edu.bupt.web.entity.OrderItem;
-import cn.edu.bupt.web.entity.Product;
 import cn.edu.bupt.web.service.OrderItemService;
 import cn.edu.bupt.web.service.OrderService;
 import cn.edu.bupt.web.service.ProductService;
@@ -13,36 +12,38 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.Resource;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/order")
 public class OrderController {
-    @Autowired
+    @Resource
     private RabbitTemplate rabbitTemplate;
-    @Autowired
+
+    @Resource
     private OrderService orderService;
+
     @Resource
     private OrderItemService orderItemService;
+
     @Resource
     private ProductService productService;
+
     final RedisTemplate<String, String> redisTemplate;
+
     public OrderController(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
-    public Order createOrder(Long userId){
+    private Order createOrder(Long userId){
         Order order = new Order();
         order.setUserId(userId);
         order.setTotalAmount(BigDecimal.valueOf(0));
@@ -51,30 +52,36 @@ public class OrderController {
         orderService.save(order);
         return order;
     }
-    public List<OrderItem> getAllItem(Order order){
+    private List<OrderItem> getAllItem(Order order){
         var orderId = order.getId();
-        LambdaQueryWrapper<OrderItem> lqw = new LambdaQueryWrapper<>();
+        var lqw = new LambdaQueryWrapper<OrderItem>();
         lqw.eq(OrderItem::getOrderId,orderId);
         return orderItemService.list(lqw);
     }
+
     @PostMapping("/addProduct")
-    public R<OrderItem> addProduct(@NotNull Long productId,@NotNull Integer num,@RequestHeader("Authorization") String token){
+    public R<OrderItem> addProduct(@NotNull Long productId, @NotNull Integer num, @RequestHeader("Authorization") String token) {
         var userId = redisTemplate.opsForValue().get(token);
-        if(userId == null) return R.error("请先登录");
-        LambdaQueryWrapper<Order> lqw = new LambdaQueryWrapper<>();
+        if (userId == null)
+            return R.error("请先登录");
+
+        var lqw = new LambdaQueryWrapper<Order>();
         lqw.eq(Order::getUserId, Long.parseLong(userId))
                 .eq(Order::getStatus, "CREATED");
-        Order createdOrder = orderService.getOne(lqw);
-        if(createdOrder == null) createdOrder = createOrder(Long.valueOf(userId));
-        Long orderId = createdOrder.getId();
-        Product product = productService.getById(productId);
-        if(product.getStock() >= num){
+        var createdOrder = orderService.getOne(lqw);
+        if (createdOrder == null)
+            createdOrder = createOrder(Long.valueOf(userId));
+
+        var orderId = createdOrder.getId();
+        var product = productService.getById(productId);
+        if (product.getStock() >= num) {
             var price = product.getPrice();
-            var lastfee = createdOrder.getTotalAmount();
-            var totalfee = lastfee.add(price.multiply(BigDecimal.valueOf(num)));
-            createdOrder.setTotalAmount(totalfee);
+            var lastFee = createdOrder.getTotalAmount();
+            var totalFee = lastFee.add(price.multiply(BigDecimal.valueOf(num)));
+
+            createdOrder.setTotalAmount(totalFee);
             orderService.updateById(createdOrder);
-            OrderItem newOrderItem = new OrderItem();
+            var newOrderItem = new OrderItem();
             newOrderItem.setProductId(productId);
             newOrderItem.setOrderId(orderId);
             newOrderItem.setPrice(price);
@@ -84,33 +91,43 @@ public class OrderController {
         }
         return R.error("添加商品失败");
     }
+
     @GetMapping("/newOrder")
-    public R<Order> newOrder(@RequestHeader("Authorization") String token){
+    public R<Order> newOrder(@RequestHeader("Authorization") String token) {
         var userId = redisTemplate.opsForValue().get(token);
-        if(userId == null) return R.error("请先登录");
-        LambdaQueryWrapper<Order> lqw = new LambdaQueryWrapper<>();
+        if (userId == null)
+            return R.error("请先登录");
+
+        var lqw = new LambdaQueryWrapper<Order>();
         lqw.eq(Order::getUserId, Long.parseLong(userId))
                 .eq(Order::getStatus, "CREATED");
-        Order createdOrder = orderService.getOne(lqw);
-        if(createdOrder == null) return R.error("你的购物车是空的");
-        String orderMessage = convertOrderToJson(createdOrder, getAllItem(createdOrder));
+        var createdOrder = orderService.getOne(lqw);
+        if (createdOrder == null)
+            // TODO: 这里改为您有一个空订单未处理是否更为合适?
+            return R.error("你的购物车是空的");
+
+        var orderMessage = convertOrderToJson(createdOrder, getAllItem(createdOrder));
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.ORDER_QUEUE, orderMessage);
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.ORDER_CANCEL_QUEUE, orderMessage, message -> {
             message.getMessageProperties().setExpiration("600000");
             return message;
         });
+
+        // TODO: 这里为什么要等 5 秒钟呢
         try {
             Thread.sleep(5000); // 等待 5 秒钟
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        Order curOrder = orderService.getById(createdOrder.getId());
+
+        var curOrder = orderService.getById(createdOrder.getId());
         return R.success(curOrder);
     }
+
     private String convertOrderToJson(Order order, List<OrderItem> orderItems) {
-        ObjectMapper objectMapper = new ObjectMapper();
+        var objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-        Map<Object, Object> orderMap = new HashMap<>();
+        var orderMap = new HashMap<>();
         orderMap.put("order", order);
         orderMap.put("orderItems", orderItems);
         try {
@@ -119,48 +136,57 @@ public class OrderController {
             throw new RuntimeException("Failed to convert order to JSON", e);
         }
     }
+
     @GetMapping("/searchOrder")
-    public R<List<Order>> searchOrder(@RequestHeader("Authorization") String token,@NotNull String status){
+    public R<List<Order>> searchOrder(@RequestHeader("Authorization") String token, @NotNull String status) {
         var userId = redisTemplate.opsForValue().get(token);
-        if(userId == null) return R.error("请先登录");
-        LambdaQueryWrapper<Order> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Order::getUserId, userId);
-        if (!"All".equals(status)) {
-            queryWrapper.eq(Order::getStatus, status);
-        }
-        List<Order> orders = orderService.list(queryWrapper);
+        if (userId == null)
+            return R.error("请先登录");
+        var lqw = new LambdaQueryWrapper<Order>();
+        lqw.eq(Order::getUserId, userId);
+        if (!"All".equals(status))
+            lqw.eq(Order::getStatus, status);
+
+       var orders = orderService.list(lqw);
         return R.success(orders);
     }
+
     @PostMapping("/pay")
-    public R<String> payOrder(@RequestHeader("Authorization") String token,Long orderId){
+    public R<String> payOrder(@RequestHeader("Authorization") String token, Long orderId) {
         var userId = redisTemplate.opsForValue().get(token);
-        if(userId == null) return R.error("请先登录");
+        if (userId == null)
+            return R.error("请先登录");
         var order = orderService.getById(orderId);
-        if(!order.getStatus().equals("PENDING")){
+        if (!order.getStatus().equals("PENDING"))
             return R.error("出错了！请检查你的订单");
-        }
-        String orderMessage = convertOrderToJson(order, getAllItem(order));
+
+        var orderMessage = convertOrderToJson(order, getAllItem(order));
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.PAYMENT_QUEUE, orderMessage);
         return R.success("Order payment initiated.");
     }
+
     @PostMapping("/chancelOrder")
-    public R<String> chancelOrder(@RequestHeader("Authorization") String token,Long orderId){
+    public R<String> chancelOrder(@RequestHeader("Authorization") String token, Long orderId) {
         var userId = redisTemplate.opsForValue().get(token);
-        if(userId == null) return R.error("请先登录");
+        if (userId == null)
+            return R.error("请先登录");
+
         var order = orderService.getById(orderId);
-        if(!order.getStatus().equals("PENDING")){
+        if (!order.getStatus().equals("PENDING")) {
             return R.error("该订单不是等待支付状态哦～");
         }
-        String orderMessage = convertOrderToJson(order, getAllItem(order));
+        var orderMessage = convertOrderToJson(order, getAllItem(order));
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.ORDER_CANCEL_QUEUE, orderMessage);
         return R.success("取消成功，再看看其他商品吧～");
     }
 
     @GetMapping("/orderDetail")
-    public R<List<OrderItem>> orderDetail(@RequestHeader("Authorization") String token,Long orderId){
+    public R<List<OrderItem>> orderDetail(@RequestHeader("Authorization") String token, Long orderId) {
         var userId = redisTemplate.opsForValue().get(token);
-        if(userId == null) return R.error("请先登录");
-        Order order = orderService.getById(orderId);
+        if (userId == null)
+            return R.error("请先登录");
+
+        var order = orderService.getById(orderId);
         return R.success(getAllItem(order));
     }
 }

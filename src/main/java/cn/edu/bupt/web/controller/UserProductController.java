@@ -22,9 +22,9 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/Shop")
 public class UserProductController {
-
     @Resource
     private ProductService productService;
+
     private final RedisTemplate<String, String> redisTemplate;
 
     public UserProductController(RedisTemplate<String, String> redisTemplate) {
@@ -35,50 +35,46 @@ public class UserProductController {
     public R<List<Product>> queryAll(@RequestParam(value = "field", defaultValue = "id") String field,
                                      @RequestParam(value = "isDesc", defaultValue = "false") boolean isDesc) {
 
-        String cacheKey = "products:" + field + ":" + isDesc;
-        String cachedProducts = redisTemplate.opsForValue().get(cacheKey);
+        var cacheKey = "products:" + field + ":" + isDesc;
+        var cachedProducts = redisTemplate.opsForValue().get(cacheKey);
 
         if (cachedProducts != null) {
-            List<Product> products = parseProductsFromJson(cachedProducts);
+            var products = parseProductsFromJson(cachedProducts);
             return R.success(products);
         }
 
         LambdaQueryWrapper<Product> lqw = Wrappers.lambdaQuery();
         switch (field) {
             case "price":
-                if (isDesc) {
+                if (isDesc)
                     lqw.orderByDesc(Product::getPrice);
-                } else {
+                else
                     lqw.orderByAsc(Product::getPrice);
-                }
                 break;
             case "name":
-                if (isDesc) {
+                if (isDesc)
                     lqw.orderByDesc(Product::getName);
-                } else {
+                else
                     lqw.orderByAsc(Product::getName);
-                }
                 break;
             case "comment_count":
-                if (isDesc) {
+                if (isDesc)
                     lqw.orderByDesc(Product::getCommentCount);
-                } else {
+                else
                     lqw.orderByAsc(Product::getCommentCount);
-                }
                 break;
             default:
-                if (isDesc) {
+                if (isDesc)
                     lqw.orderByDesc(Product::getId);
-                } else {
+                else
                     lqw.orderByAsc(Product::getId);
-                }
                 break;
         }
 
-        List<Product> products = productService.list(lqw);
+        var products = productService.list(lqw);
 
         // 将查询结果转换为JSON字符串，并存入Redis缓存，设置缓存时间为1小时
-        String productsJson = convertProductsToJson(products);
+        var productsJson = convertProductsToJson(products);
         redisTemplate.opsForValue().set(cacheKey, productsJson, 1, TimeUnit.HOURS);
 
         return R.success(products);
@@ -86,7 +82,7 @@ public class UserProductController {
 
     private List<Product> parseProductsFromJson(String json) {
         // 实现从JSON字符串解析为Product列表的逻辑
-        ObjectMapper objectMapper = new ObjectMapper();
+        var objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         try {
             return objectMapper.readValue(json, new TypeReference<>() {
@@ -99,7 +95,7 @@ public class UserProductController {
 
     private String convertProductsToJson(List<Product> products) {
         // 实现将Product列表转换为JSON字符串的逻辑
-        ObjectMapper objectMapper = new ObjectMapper();
+        var objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         try {
             return objectMapper.writeValueAsString(products);
@@ -112,25 +108,24 @@ public class UserProductController {
     @GetMapping("/search")
     public R<List<Product>> search(@RequestParam(value = "name", defaultValue = "") String name,
                                    @RequestParam(value = "category", defaultValue = "all") String category) {
-
         // 构建 Redis 缓存键
-        String cacheKey = "products:search:" + name + ":" + category;
-        String cachedProducts = redisTemplate.opsForValue().get(cacheKey);
+        var cacheKey = "products:search:" + name + ":" + category;
+        var cachedProducts = redisTemplate.opsForValue().get(cacheKey);
 
         if (cachedProducts != null) {
-            List<Product> products = parseProductsFromJson(cachedProducts);
+            var products = parseProductsFromJson(cachedProducts);
             return R.success(products);
         }
 
         LambdaQueryWrapper<Product> lqw = Wrappers.lambdaQuery();
-        if (!name.isEmpty()) {
+        if (!name.isEmpty())
             lqw.like(Product::getName, name);
-        }
-        if (!category.equals("all")) {
+
+        if (!category.equals("all"))
             lqw.eq(Product::getCategory, category);
-        }
-        //lqw.orderByAsc(Product::getId);
-        List<Product> products = productService.list(lqw);
+
+        // lqw.orderByAsc(Product::getId);
+        var products = productService.list(lqw);
         convertProductsToJson(products);
         return R.success(products);
     }

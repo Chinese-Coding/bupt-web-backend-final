@@ -34,11 +34,14 @@ public class CommentController {
     }
 
     @GetMapping("/page")
-    public R<Page<Comment>> page(@NotNull Long productId, @NotNull Integer pageNum, @NotNull Integer pageSize) {
+    public R<Page<Comment>> page(@NotNull Long productId, @NotNull Integer pageNum, @NotNull Integer pageSize, @NotNull Integer sort) {
         var page = new Page<Comment>(pageNum, pageSize);
         var lqw = new LambdaQueryWrapper<Comment>();
-        lqw.eq(Comment::getProductId, productId).eq(Comment::getStatus, 1)
-                .orderByAsc(Comment::getCreateTime);
+        lqw.eq(Comment::getProductId, productId).eq(Comment::getStatus, 1);
+        if (sort == 1)
+            lqw.orderByAsc(Comment::getCreateTime);
+        else if (sort == 2)
+            lqw.orderByDesc(Comment::getCreateTime);
         commentService.page(page, lqw);
         return R.success(page);
     }
